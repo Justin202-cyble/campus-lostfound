@@ -2,7 +2,7 @@
 
 import sqlite3
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 from config import config
 
@@ -14,7 +14,8 @@ def seed_all():
     conn.execute("PRAGMA foreign_keys = ON")
     cursor = conn.cursor()
 
-    now = datetime.now()
+    # 使用北京时间 (UTC+8) 确保时间显示正确
+    now = datetime.now(timezone(timedelta(hours=8)))
 
     # ===== 1. 用户数据 =====
     print("  创建用户...")

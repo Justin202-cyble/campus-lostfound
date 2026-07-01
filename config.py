@@ -34,4 +34,5 @@ class ProductionConfig(Config):
     DEBUG = False
 
 
-config = DevelopmentConfig()
+# 默认使用生产配置（本地开发时 app.run(debug=True) 会覆盖）
+config = ProductionConfig()

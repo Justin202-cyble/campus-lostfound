@@ -63,29 +63,33 @@ const api = {
      * 内部请求方法
      */
     async _request(url, options) {
-        try {
-            const response = await fetch(url, {
-                ...options,
-                credentials: 'same-origin',
-            });
+        const response = await fetch(url, {
+            ...options,
+            credentials: 'same-origin',
+        });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                // 401 未登录，跳转到登录页
-                if (response.status === 401) {
-                    window.dispatchEvent(new CustomEvent('auth:required'));
-                }
-                throw new Error(data.error || `请求失败 (${response.status})`);
+        // 尝试解析 JSON，失败则返回文本错误
+        let data;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            // 401 未登录，跳转到登录页
+            if (response.status === 401) {
+                window.dispatchEvent(new CustomEvent('auth:required'));
             }
-
-            return data;
-        } catch (error) {
-            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                throw new Error('网络连接失败，请检查网络');
-            }
-            throw error;
+            throw new Error(`服务器错误 (${response.status})，请稍后重试`);
         }
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.dispatchEvent(new CustomEvent('auth:required'));
+            }
+            throw new Error(data.error || `请求失败 (${response.status})`);
+        }
+
+        return data;
     },
 };
 

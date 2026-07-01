@@ -46,8 +46,8 @@ def init_db():
                                 CHECK(role IN ('student', 'admin')),
             avatar      TEXT    DEFAULT '',
             student_id  TEXT    DEFAULT '',
-            created_at  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-            updated_at  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            created_at  TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours')),
+            updated_at  TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     ''')
 
@@ -76,8 +76,8 @@ def init_db():
             status          TEXT    NOT NULL DEFAULT 'pending'
                                    CHECK(status IN ('pending', 'claimed', 'resolved')),
             is_published    INTEGER NOT NULL DEFAULT 1,
-            created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-            updated_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            created_at      TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours')),
+            updated_at      TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     ''')
 
@@ -112,8 +112,8 @@ def init_db():
             status          TEXT    NOT NULL DEFAULT 'open'
                                    CHECK(status IN ('open', 'found', 'resolved')),
             is_published    INTEGER NOT NULL DEFAULT 1,
-            created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-            updated_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            created_at      TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours')),
+            updated_at      TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     ''')
 
@@ -148,8 +148,8 @@ def init_db():
             status            TEXT    NOT NULL DEFAULT 'available'
                                      CHECK(status IN ('available', 'exchanged', 'resolved')),
             is_published      INTEGER NOT NULL DEFAULT 1,
-            created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
-            updated_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            created_at        TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours')),
+            updated_at        TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     ''')
 
@@ -174,7 +174,7 @@ def init_db():
                                CHECK(item_type IN ('found', 'lost', 'exchange')),
             content     TEXT    NOT NULL,
             is_read     INTEGER NOT NULL DEFAULT 0,
-            created_at  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            created_at  TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     ''')
 
@@ -204,7 +204,7 @@ def init_db():
             related_item_id    INTEGER,
             related_item_type  TEXT,
             is_read            INTEGER NOT NULL DEFAULT 0,
-            created_at         TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            created_at         TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     ''')
 
@@ -225,7 +225,7 @@ def init_db():
             matched_keywords  TEXT    DEFAULT '[]',
             status            TEXT    NOT NULL DEFAULT 'pending'
                                    CHECK(status IN ('pending', 'notified', 'resolved')),
-            created_at        TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+            created_at        TEXT    NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     ''')
 
