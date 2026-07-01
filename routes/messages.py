@@ -16,36 +16,66 @@ def list_conversations():
     user_id = get_current_user_id()
     db = get_db()
 
-    # 查询与我相关的所有对话（作为发送方或接收方）
-    conversations = db.execute('''
+    # 1. 先获取所有涉及我的对话（去重）
+    rows = db.execute('''
         SELECT DISTINCT
-            CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END as other_user_id,
-            m.item_id,
-            m.item_type,
-            u.username,
-            u.avatar,
-            (SELECT COUNT(*) FROM messages
-             WHERE receiver_id = ?
-               AND sender_id = other_user_id
-               AND is_read = 0) as unread_count,
-            (SELECT content FROM messages
-             WHERE (sender_id = ? AND receiver_id = other_user_id)
-                OR (sender_id = other_user_id AND receiver_id = ?)
-             ORDER BY created_at DESC LIMIT 1) as last_message,
-            (SELECT created_at FROM messages
-             WHERE (sender_id = ? AND receiver_id = other_user_id)
-                OR (sender_id = other_user_id AND receiver_id = ?)
-             ORDER BY created_at DESC LIMIT 1) as last_time
-        FROM messages m
-        JOIN users u ON u.id = CASE
-            WHEN m.sender_id = ? THEN m.receiver_id
-            ELSE m.sender_id
-        END
-        WHERE m.sender_id = ? OR m.receiver_id = ?
-        ORDER BY last_time DESC
-    ''', (user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id, user_id)).fetchall()
+            CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_user_id,
+            item_id,
+            item_type
+        FROM messages
+        WHERE sender_id = ? OR receiver_id = ?
+        ORDER BY item_id
+    ''', (user_id, user_id, user_id)).fetchall()
 
-    return jsonify({'conversations': [dict(c) for c in conversations]}), 200
+    # 2. 为每个对话补充用户信息和统计
+    conversations = []
+    for row in rows:
+        other_id = row['other_user_id']
+        item_id = row['item_id']
+        item_type = row['item_type']
+
+        # 获取对方用户信息
+        other_user = db.execute(
+            'SELECT id, username, avatar FROM users WHERE id = ?',
+            (other_id,)
+        ).fetchone()
+        if not other_user:
+            continue
+
+        # 未读消息数
+        unread = db.execute(
+            '''SELECT COUNT(*) FROM messages
+               WHERE receiver_id = ? AND sender_id = ?
+                 AND item_id = ? AND item_type = ?
+                 AND is_read = 0''',
+            (user_id, other_id, item_id, item_type)
+        ).fetchone()[0]
+
+        # 最后一条消息
+        last_msg = db.execute(
+            '''SELECT content, created_at FROM messages
+               WHERE item_id = ? AND item_type = ?
+                 AND ((sender_id = ? AND receiver_id = ?)
+                      OR (sender_id = ? AND receiver_id = ?))
+               ORDER BY created_at DESC LIMIT 1''',
+            (item_id, item_type, user_id, other_id, other_id, user_id)
+        ).fetchone()
+
+        conversations.append({
+            'other_user_id': other_id,
+            'item_id': item_id,
+            'item_type': item_type,
+            'username': other_user['username'],
+            'avatar': other_user['avatar'],
+            'unread_count': unread,
+            'last_message': last_msg['content'] if last_msg else '',
+            'last_time': last_msg['created_at'] if last_msg else '',
+        })
+
+    # 按最后消息时间排序
+    conversations.sort(key=lambda c: c['last_time'], reverse=True)
+
+    return jsonify({'conversations': conversations}), 200
 
 
 @messages_bp.route('', methods=['GET'])
@@ -97,7 +127,7 @@ def send_message():
     content = data.get('content', '').strip()
 
     if not receiver_id or not item_id or not item_type:
-        return jsonify({'error': '参数不完整'}), 400
+        return jsonify({'error': '参数不完整，缺少 receiver_id/item_id/item_type'}), 400
 
     if not content:
         return jsonify({'error': '留言内容不能为空'}), 400
@@ -123,20 +153,18 @@ def send_message():
         WHERE m.id = ?
     ''', (cursor.lastrowid,)).fetchone()
 
-    # 给接收方发送通知
+    # 给接收方发通知
     sender = db.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-    item_table_map = {'found': '拾物', 'lost': '寻物', 'exchange': '交换'}
-    item_label = item_table_map.get(item_type, '物品')
+    item_label = {'found': '拾物', 'lost': '寻物', 'exchange': '交换'}.get(item_type, '物品')
 
-    # 获取物品标题
     table_map = {'found': 'found_items', 'lost': 'lost_items', 'exchange': 'exchange_items'}
-    item_row = None
+    item_title = f'{item_label}#{item_id}'
     if item_type in table_map:
         item_row = db.execute(
             f"SELECT title FROM {table_map[item_type]} WHERE id = ?", (item_id,)
         ).fetchone()
-
-    item_title = item_row['title'] if item_row else f'{item_label}#{item_id}'
+        if item_row:
+            item_title = item_row['title']
 
     create_notification(
         user_id=receiver_id,
