@@ -122,11 +122,11 @@ def create_found():
     if not item:
         return jsonify({'error': '发布失败'}), 500
 
-    # 触发智能匹配
+    # 触发智能匹配（匹配+保存记录+推送通知）
     try:
-        find_matches_for_item('found', item)
-    except Exception:
-        pass  # 匹配失败不影响发布
+        notify_high_matches('found', item)
+    except Exception as e:
+        print(f'[匹配] 拾物匹配失败: {e}')
 
     return jsonify({'item': item, 'message': '发布成功'}), 201
 
@@ -152,11 +152,11 @@ def create_lost():
     if not item:
         return jsonify({'error': '发布失败'}), 500
 
-    # 触发智能匹配
+    # 触发智能匹配（匹配+保存记录+推送通知）
     try:
-        find_matches_for_item('lost', item)
-    except Exception:
-        pass
+        notify_high_matches('lost', item)
+    except Exception as e:
+        print(f'[匹配] 寻物匹配失败: {e}')
 
     return jsonify({'item': item, 'message': '发布成功'}), 201
 
